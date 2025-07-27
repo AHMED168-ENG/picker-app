@@ -134,7 +134,7 @@ const startServer = async () => {
     await testConnection();
 
     // Start HTTP server
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       console.log("\n🚀 ========================================");
       console.log(`✅ Server running successfully!`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
