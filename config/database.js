@@ -22,7 +22,7 @@ const sequelize = new Sequelize(
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT, // PostgreSQL default port
+    // port: process.env.DB_PORT, // PostgreSQL default port
     dialect: process.env.DB_DIALECT,
     pool: {
       max: 10,
