@@ -22,7 +22,7 @@ data.getNotifications = async (req, res) => {
     } = req.query;
     const offset = (page - 1) * limit;
     const lang = req.headers.lang || "en";
-    console.log(auth_data.id);
+
     const where = { userId: auth_data.id };
     if (role) where.role = role;
     if (read !== undefined) where.read = read === "true";
