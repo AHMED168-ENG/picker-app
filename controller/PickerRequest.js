@@ -151,6 +151,55 @@ data.getPickerBreakRequests = async (req, res, next) => {
   }
 };
 
+// جلب طلبات الاستراحة الخاصة للادمن
+data.getAdminBreakRequests = async (req, res, next) => {
+  try {
+    const auth_data = req.auth_data;
+    const { limit = 10, page = 1 } = req.query;
+    const lang = req.headers.lang || "en";
+    const offset = (page - 1) * limit;
+
+    const breakRequests = await BreakRequestsModel.findAndCountAll({
+      where: { status: "pending" },
+      limit: parseInt(limit),
+      offset,
+      attributes: [
+        "id",
+        "breakTypeId",
+        "requestNote",
+        "voiceNote",
+        "status",
+        "managerNote",
+        "createdAt",
+      ],
+      include: [
+        {
+          model: BreakTypesModel,
+          attributes: ["id", "name", "description"],
+        },
+        {
+          model: PickerUsersModel,
+          as: "picker",
+          attributes: ["id", "first_name", "last_name"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    res.status(200).json({
+      ack: 1,
+      breakRequests: breakRequests.rows,
+      totalCount: breakRequests.count,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(breakRequests.count / limit),
+    });
+  } catch (e) {
+    logger.error("Error: getPickerBreakRequests API - " + e.message);
+    next(e);
+    console.log(e);
+  }
+};
+
 // جلب طلبات الاستراحة الخاصة بالبيكر
 data.getOnePickerBreakRequests = async (req, res, next) => {
   try {
@@ -252,19 +301,11 @@ data.cancelBreakRequest = async (req, res) => {
 };
 
 // الموافقة/الرفض على طلب استراحة (للأدمن)
-data.manageBreakRequest = async (req, res) => {
+data.manageBreakRequest = async (req, res, next) => {
   try {
     const auth_data = req.auth_data;
     const { breakRequestId, status, managerNote } = req.body;
     const lang = req.headers.lang || "en";
-
-    // التحقق من صلاحية الأدمن
-    if (auth_data.role !== "section_manager") {
-      return res.status(403).json({
-        ack: 0,
-        msg: language[lang].pickerType.unauthorized,
-      });
-    }
 
     // التحقق من طلب الاستراحة
     const breakRequest = await BreakRequestsModel.findOne({

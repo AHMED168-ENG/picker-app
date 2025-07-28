@@ -5,5 +5,6 @@ data.admin = require("./admin.json");
 data.picker = require("./picker.json");
 data.pickerType = require("./pickerType.json");
 data.auth = require("./auth.json");
+data.notification = require("./notification.json");
 
 module.exports = data;

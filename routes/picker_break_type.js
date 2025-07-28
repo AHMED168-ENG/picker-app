@@ -58,6 +58,12 @@ router.post(
   validateJoi(manageBreakRequestSchema),
   BreakRequestController.manageBreakRequest
 );
+router.get(
+  "/admin/break-requests",
+  authenticateAdmin,
+  validateJoi(getPickerBreakRequestsSchema),
+  BreakRequestController.getAdminBreakRequests
+);
 router.post(
   "/admin/break-types",
   authenticateAdmin,
