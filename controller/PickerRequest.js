@@ -311,7 +311,6 @@ data.manageBreakRequest = async (req, res, next) => {
     const breakRequest = await BreakRequestsModel.findOne({
       where: {
         id: breakRequestId,
-        storeId: auth_data.store_id,
         status: "pending",
       },
     });
@@ -327,10 +326,8 @@ data.manageBreakRequest = async (req, res, next) => {
     await BreakRequestsModel.update(
       {
         status,
-        managerId: auth_data.id,
+        // managerId: auth_data.id,
         managerNote,
-        updated_by: auth_data.id,
-        updatedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
       },
       { where: { id: breakRequestId } }
     );
@@ -348,6 +345,7 @@ data.manageBreakRequest = async (req, res, next) => {
     });
   } catch (e) {
     logger.error("Error: manageBreakRequest API - " + e.message);
+    console.log(e);
     next(e);
   }
 };
