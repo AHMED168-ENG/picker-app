@@ -23,8 +23,8 @@ const generateUniqueFileName = (file) => {
 };
 
 const audioFilter = (req, file, cb) => {
-  const allowedMimetypes = ["audio/mpeg", "audio/wav", "audio/ogg"];
-  if (allowedMimetypes.includes(file.mimetype)) {
+  const allowedMimetype = ["audio/mpeg", "audio/wav", "audio/ogg"];
+  if (allowedMimetype.includes(file.mimetype)) {
     cb(null, true);
   } else {
     cb(new Error("الملف يجب أن يكون ملف صوتي (.mp3 أو .wav أو .ogg)"), false);
