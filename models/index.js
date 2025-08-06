@@ -15,6 +15,29 @@ const UomBarcodeRelationModel = require("./uom_barcode_relation");
 const NotificationsModel = require("./notifications");
 const UsersModel = require("./users");
 
+// تحديد العلاقات بشكل صحيح
+OrdersModel.hasMany(OrdersDetailModel, { foreignKey: "orderId" });
+OrdersDetailModel.belongsTo(OrdersModel, { foreignKey: "orderId" });
+OrdersDetailModel.belongsTo(ProductsModel, { foreignKey: "productId" });
+ProductsModel.hasMany(OrdersDetailModel, { foreignKey: "productId" });
+ProductsModel.hasMany(ProductsLocalesModel, { foreignKey: "productId" });
+// ProductsModel.hasMany(UomModel, { foreignKey: 'productId'  });
+ProductsModel.hasOne(UomModel, {
+  foreignKey: "productId",
+  as: "defaultUom",
+});
+UomModel.belongsTo(ProductsModel, { foreignKey: "productId" });
+UomModel.hasMany(UomBarcodeRelationModel, { foreignKey: "uomId" });
+UomBarcodeRelationModel.belongsTo(UomModel, { foreignKey: "uomId" });
+// UomModel.hasMany(UomImageRelationModel, { foreignKey: 'uomId' });
+UomModel.hasOne(UomImageRelationModel, {
+  foreignKey: "uomId",
+  as: "defaultImage",
+});
+
+UomModel.belongsTo(UnitModel, { foreignKey: "unitId" });
+StoresModel.hasMany(OrdersModel, { foreignKey: "storeId" });
+
 module.exports = {
   BreakRequestsModel,
   BreakTypesModel,

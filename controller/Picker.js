@@ -16,29 +16,6 @@ const {
   UnitModel,
 } = require("../models/index");
 
-// تحديد العلاقات بشكل صحيح
-OrdersModel.hasMany(OrdersDetailModel, { foreignKey: "orderId" });
-OrdersDetailModel.belongsTo(OrdersModel, { foreignKey: "orderId" });
-OrdersDetailModel.belongsTo(ProductsModel, { foreignKey: "productId" });
-ProductsModel.hasMany(OrdersDetailModel, { foreignKey: "productId" });
-ProductsModel.hasMany(ProductsLocalesModel, { foreignKey: "productId" });
-// ProductsModel.hasMany(UomModel, { foreignKey: 'productId'  });
-ProductsModel.hasOne(UomModel, {
-  foreignKey: "productId",
-  as: "defaultUom",
-});
-UomModel.belongsTo(ProductsModel, { foreignKey: "productId" });
-UomModel.hasMany(UomBarcodeRelationModel, { foreignKey: "uomId" });
-UomBarcodeRelationModel.belongsTo(UomModel, { foreignKey: "uomId" });
-// UomModel.hasMany(UomImageRelationModel, { foreignKey: 'uomId' });
-UomModel.hasOne(UomImageRelationModel, {
-  foreignKey: "uomId",
-  as: "defaultImage",
-});
-
-UomModel.belongsTo(UnitModel, { foreignKey: "unitId" });
-StoresModel.hasMany(OrdersModel, { foreignKey: "storeId" });
-
 const data = {};
 
 // جلب الطلبات غير المعينة (Unassigned Orders)
@@ -482,13 +459,13 @@ data.updateOrderStatus = async (req, res) => {
     // إرسال إشعار للعميل
     await notificationService.notifyCustomerOrderReady({
       customerId: order.userId,
-      orderId: order.order_id,
+      orderId: order.id,
     });
 
     // إرسال إشعار للمشرف
     await notificationService.notifyStoreOwnerOrderReadyForDelivery({
       storeId: store.userId,
-      orderId: order.order_id,
+      orderId: order.id,
       pickerId: auth_data.id,
       pickerName:
         auth_data?.first_name && auth_data?.last_name

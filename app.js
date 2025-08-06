@@ -139,7 +139,6 @@ const startServer = async () => {
       console.log(`✅ Server running successfully!`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`📡 Server: http://${HOST}:${PORT}`);
-      console.log(`🏥 Health Check: http://${HOST}:${PORT}/health`);
       console.log(`📚 API Documentation: http://${HOST}:${PORT}/api`);
       console.log("🚀 ========================================\n");
     });
