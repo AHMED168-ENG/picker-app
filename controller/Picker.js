@@ -210,6 +210,125 @@ data.getAssignedOrders = async (req, res) => {
   }
 };
 
+// دالة موحدة لجلب الطلبات (المعينة وغير المعينة)
+data.getOrders = async (req, res) => {
+  try {
+    let lang = req.headers.lang || "en";
+    const auth_data = req.auth_data;
+    const { limit = 10, page = 1, type = "unassigned" } = req.query;
+    const offset = (page - 1) * limit;
+
+    const storeId = auth_data.store_id;
+    let where = {
+      storeId,
+      status: ["processing", "placed"],
+    };
+
+    // تحديد شروط البحث بناءً على النوع المطلوب
+    if (type === "unassigned") {
+      // الطلبات غير المعينة (Unassigned Orders)
+      where.picker_status = "pending_pickup";
+    } else if (type === "assigned") {
+      // الطلبات المعينة (Assigned Orders)
+      where.picker_status = ["in_pick", "repick"];
+      where.pickerId = auth_data.id;
+    } else {
+      // نوع غير صحيح
+      return res.status(400).json({
+        ack: 0,
+        msg:
+          language[lang]?.picker?.invalid_type ||
+          "Invalid order type. Use 'assigned' or 'unassigned'",
+      });
+    }
+
+    const orders = await OrdersModel.findAll({
+      where,
+      limit: parseInt(limit),
+      offset,
+      attributes: [
+        "id",
+        "order_id",
+        "status",
+        "createdAt",
+        "delivery_date_time",
+        "total_amount",
+        "delivery_charges",
+        "payment_method",
+        "picker_status",
+        "pickerId",
+      ],
+      include: [
+        {
+          model: OrdersDetailModel,
+          attributes: [
+            "id",
+            "productId",
+            "quantity",
+            "price",
+            "specialRequest",
+            ...(type === "assigned" ? ["picker_status"] : []), // إضافة picker_status فقط للطلبات المعينة
+          ],
+          where: { status: "active" },
+          required: false,
+          include: [
+            {
+              model: ProductsModel,
+              attributes: ["id", "storeId", "itemCode", "categoryId"],
+              include: [
+                {
+                  model: UomModel,
+                  as: "defaultUom",
+                  attributes: [
+                    "id",
+                    "quantity",
+                    "unitId",
+                    "price",
+                    "salePrice",
+                    "retailPrice",
+                    "stock",
+                    "isDefault",
+                    "uomName",
+                  ],
+                  include: [
+                    {
+                      model: UnitModel,
+                      attributes: ["id"],
+                    },
+                    {
+                      model: UomImageRelationModel,
+                      as: "defaultImage",
+                      attributes: ["id", "uomId", "image", "type"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const orderCount = await OrdersModel.count({ where }); // صحيح
+    console.log(orderCount);
+
+    res.status(200).json({
+      ack: 1,
+      orders: orders,
+      totalCount: orderCount,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(orderCount / limit),
+      orderType: type, // إضافة نوع الطلبات في الاستجابة للتوضيح
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ack: 0,
+    });
+  }
+};
+
 // تخصيص طلب (Assign Order)
 data.assignOrder = async (req, res) => {
   try {

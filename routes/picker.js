@@ -16,10 +16,10 @@ const authenticatePicker = require("../middleware/authenticatePicker");
 const validateJoi = require("../middleware/validationJoi");
 
 router.get(
-  "/unassigned-orders",
+  "/orders",
   authenticatePicker,
   validateJoi(getUnassignedOrdersSchema),
-  pickerController.getUnassignedOrders
+  pickerController.getOrders
 );
 router.get(
   "/assigned-orders",
