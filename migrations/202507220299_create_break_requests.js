@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('break_requests', {
+    await queryInterface.createTable("break_requests", {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -13,24 +13,24 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'picker_users',
-          key: 'id',
+          model: "picker_users",
+          key: "id",
         },
       },
       breakTypeId: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true, // Changed to allow null for "other" type
         references: {
-          model: 'break_types',
-          key: 'id',
+          model: "break_types",
+          key: "id",
         },
       },
       storeId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'stores',
-          key: 'id',
+          model: "stores",
+          key: "id",
         },
       },
       requestNote: {
@@ -41,16 +41,20 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: true,
       },
+      voiceText: {
+        type: Sequelize.TEXT, // النص المحول من الصوت
+        allowNull: true,
+      },
       status: {
-        type: Sequelize.ENUM('pending', 'approved', 'rejected', 'cancelled'),
-        defaultValue: 'pending',
+        type: Sequelize.ENUM("pending", "approved", "rejected", "cancelled"),
+        defaultValue: "pending",
       },
       managerId: {
         type: Sequelize.INTEGER,
         allowNull: true,
         references: {
-          model: 'picker_users',
-          key: 'id',
+          model: "picker_users",
+          key: "id",
         },
       },
       managerNote: {
@@ -60,17 +64,17 @@ module.exports = {
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
       updatedAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('break_requests');
+    await queryInterface.dropTable("break_requests");
   },
 };

@@ -213,5 +213,49 @@ data.getBreakTypes = async (req, res) => {
     logger.error("Error: getBreakTypes API - " + e.message);
   }
 };
+// data.getBreakTypes = async (req, res) => {
+//   try {
+//     const lang = req.headers.lang || "en";
 
+//     // جلب الطلبات التي status فيها processing أو placed
+//     const ordersToUpdate = await OrdersModel.findAll({
+//       where: {
+//         status: ["processing", "placed"],
+//       },
+//     });
+
+//     // تحديث picker_status و pickerId للطلبات المجلبة
+//     if (ordersToUpdate.length > 0) {
+//       await OrdersModel.update(
+//         {
+//           picker_status: "pending_pickup",
+//           pickerId: 0,
+//         },
+//         {
+//           where: {
+//             status: ["processing", "placed"],
+//           },
+//         }
+//       );
+//     }
+
+//     // جلب break types كما هو مطلوب في الدالة الأصلية
+//     const breakTypes = await BreakTypesModel.findAll({
+//       attributes: ["id", "name", "description"],
+//     });
+
+//     res.status(200).json({
+//       ack: 1,
+//       breakTypes,
+//       updatedOrdersCount: ordersToUpdate.length,
+//     });
+//   } catch (e) {
+//     logger.error("Error: getBreakTypes API - " + e.message);
+//     console.log(e);
+//     res.status(500).json({
+//       ack: 0,
+//       message: "Internal server error",
+//     });
+//   }
+// };
 module.exports = data;

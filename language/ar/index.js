@@ -6,5 +6,6 @@ data.picker = require("./picker.json");
 data.pickerType = require("./pickerType.json");
 data.auth = require("./auth.json");
 data.notification = require("./notification.json");
+data.pickerResponse = require("./pickerResponse.json");
 
 module.exports = data;

@@ -14,6 +14,7 @@ const UomImageRelationModel = require("./uom_image");
 const UomBarcodeRelationModel = require("./uom_barcode_relation");
 const NotificationsModel = require("./notifications");
 const UsersModel = require("./users");
+const PickerResponseTimeModel = require("./picker_response_times");
 
 // تحديد العلاقات بشكل صحيح
 OrdersModel.hasMany(OrdersDetailModel, { foreignKey: "orderId" });
@@ -38,6 +39,34 @@ UomModel.hasOne(UomImageRelationModel, {
 UomModel.belongsTo(UnitModel, { foreignKey: "unitId" });
 StoresModel.hasMany(OrdersModel, { foreignKey: "storeId" });
 
+// إضافة العلاقات
+OrdersModel.hasMany(PickerResponseTimeModel, {
+  foreignKey: "orderId",
+  as: "responseTimes",
+});
+
+OrdersDetailModel.hasMany(PickerResponseTimeModel, {
+  foreignKey: "orderDetailId",
+  as: "responseTimes",
+});
+
+ProductsModel.hasMany(PickerResponseTimeModel, {
+  foreignKey: "productId",
+  as: "responseTimes",
+});
+
+PickerResponseTimeModel.belongsTo(OrdersModel, {
+  foreignKey: "orderId",
+});
+
+PickerResponseTimeModel.belongsTo(OrdersDetailModel, {
+  foreignKey: "orderDetailId",
+});
+
+PickerResponseTimeModel.belongsTo(ProductsModel, {
+  foreignKey: "productId",
+});
+
 module.exports = {
   BreakRequestsModel,
   BreakTypesModel,
@@ -55,4 +84,5 @@ module.exports = {
   UomBarcodeRelationModel,
   NotificationsModel,
   UsersModel,
+  PickerResponseTimeModel,
 };

@@ -42,7 +42,7 @@ router.get(
   "/picker-break-requests/:breakRequestId",
   authenticatePicker,
   validateJoi(getBreakRequestByIdSchema, "params"),
-  BreakRequestController.getOnePickerBreakRequests
+  BreakRequestController.getOnePickerBreakRequest
 );
 router.post(
   "/cancel-break-request/:breakRequestId",

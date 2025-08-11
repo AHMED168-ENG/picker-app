@@ -4,6 +4,9 @@ const moment = require("moment-timezone");
 moment.tz.setDefault("Asia/Qatar");
 const notificationService = require("../services/notification");
 const language = require("../language");
+const OpenAI = require("openai");
+const fs = require("fs");
+const path = require("path");
 
 const {
   OrdersModel,
@@ -12,6 +15,11 @@ const {
   StoresModel,
   PickerUsersModel,
 } = require("../models/index");
+
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPEN_AI,
+});
 
 BreakRequestsModel.belongsTo(BreakTypesModel, {
   foreignKey: "breakTypeId",
@@ -24,11 +32,38 @@ BreakRequestsModel.belongsTo(PickerUsersModel, {
 
 const data = {};
 
-// إنشاء طلب استراحة (للبيكر)
-data.requestBreak = async (req, res) => {
+// Helper function to convert voice to text
+const convertVoiceToText = async (voiceFilePath) => {
+  try {
+    const absolutePath = path.join(
+      __dirname,
+      "../",
+      "uploads",
+      "voice_notes",
+      path.basename(voiceFilePath)
+    );
+    console.log(absolutePath);
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error("Voice file not found");
+    }
+
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(absolutePath),
+      model: "whisper-1",
+      language: "ar", // Arabic, can be dynamic based on user preference
+    });
+
+    return transcription.text;
+  } catch (error) {
+    console.error("Error converting voice to text:", error);
+    throw new Error("Failed to convert voice to text");
+  }
+};
+
+data.requestBreak = async (req, res, next) => {
   try {
     const auth_data = req.auth_data;
-    const { breakTypeId, requestNote, voiceNote } = req.body;
+    const { breakTypeId, requestNote, voiceNote, voiceText } = req.body;
     const lang = req.headers.lang || "en";
     const storeId = auth_data.store_id;
 
@@ -45,33 +80,53 @@ data.requestBreak = async (req, res) => {
     }
 
     // التحقق من نوع الاستراحة
-    const breakType = await BreakTypesModel.findOne({
-      where: { id: breakTypeId, status: "active" },
-    });
-
-    if (!breakType) {
-      return res.status(404).json({
-        ack: 0,
-        msg: language[lang].pickerType.break_type_not_found,
+    let breakType;
+    if (breakTypeId === "other") {
+      // إنشاء breakType وهمي للـ "other"
+      breakType = { id: null, name: "other" };
+    } else {
+      breakType = await BreakTypesModel.findOne({
+        where: { id: breakTypeId, status: "active" },
       });
+
+      if (!breakType) {
+        return res.status(404).json({
+          ack: 0,
+          msg: language[lang].pickerType.break_type_not_found,
+        });
+      }
     }
+
+    // let voiceText = null;
+
+    // إذا كان breakTypeId هو "other" ومطلوب voice note
+    // if (breakTypeId === "other" && voiceNote) {
+    //   try {
+    //     // تحويل الصوت لنص
+    //     voiceText = await convertVoiceToText(voiceNote);
+    //   } catch (error) {
+    //     return res.status(400).json({
+    //       ack: 0,
+    //       msg: language[lang].pickerType.voice_conversion_failed,
+    //     });
+    //   }
+    // }
     // إنشاء طلب الاستراحة
     const breakRequest = await BreakRequestsModel.create({
       pickerId: auth_data.id,
-      breakTypeId,
+      breakTypeId: breakTypeId === "other" ? null : breakTypeId,
       storeId,
-      requestNote,
-      voiceNote,
+      requestNote: breakTypeId === "other" ? voiceText : requestNote,
+      voiceNote: breakTypeId === "other" ? voiceNote : null,
+      voiceText: voiceText,
       status: "pending",
       created_by: auth_data.id,
       updated_by: auth_data.id,
-      createdAt: moment().format("YYYY-MM-DD HH:mm:ss"),
-      updatedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
     });
 
     const store = await StoresModel.findOne({
       where: { id: storeId },
-      attributes: ["userId", "id"], // userId هو صاحب الفرع
+      attributes: ["userId", "id"],
     });
 
     if (!store) {
@@ -88,20 +143,22 @@ data.requestBreak = async (req, res) => {
       breakRequestId: breakRequest.id,
       pickerName: `${auth_data.first_name} ${auth_data.last_name}`,
       breakReason: breakType.name,
-      breakNote: requestNote,
+      breakNote: breakTypeId === "other" ? voiceText : requestNote,
     });
 
     res.status(200).json({
       ack: 1,
       msg: language[lang].pickerType.break_request_submitted,
-      breakRequest,
+      breakRequest: {
+        ...breakRequest.toJSON(),
+        voiceText: voiceText,
+      },
     });
   } catch (e) {
-    logger.error("Error: requestBreak API - " + e.message);
+    console.log("Error: requestBreak API - " + e.message);
     next(e);
   }
 };
-
 // جلب طلبات الاستراحة الخاصة بالبيكر
 data.getPickerBreakRequests = async (req, res, next) => {
   try {
@@ -119,6 +176,7 @@ data.getPickerBreakRequests = async (req, res, next) => {
         "breakTypeId",
         "requestNote",
         "voiceNote",
+        "voiceText",
         "status",
         "managerNote",
         "createdAt",
@@ -145,13 +203,12 @@ data.getPickerBreakRequests = async (req, res, next) => {
       totalPages: Math.ceil(breakRequests.count / limit),
     });
   } catch (e) {
-    logger.error("Error: getPickerBreakRequests API - " + e.message);
+    console.error("Error: getPickerBreakRequests API - " + e.message);
     next(e);
-    console.log(e);
   }
 };
 
-// جلب طلبات الاستراحة الخاصة للادمن
+// جلب طلبات الاستراحة للأدمن
 data.getAdminBreakRequests = async (req, res, next) => {
   try {
     const auth_data = req.auth_data;
@@ -168,6 +225,7 @@ data.getAdminBreakRequests = async (req, res, next) => {
         "breakTypeId",
         "requestNote",
         "voiceNote",
+        "voiceText",
         "status",
         "managerNote",
         "createdAt",
@@ -194,14 +252,13 @@ data.getAdminBreakRequests = async (req, res, next) => {
       totalPages: Math.ceil(breakRequests.count / limit),
     });
   } catch (e) {
-    logger.error("Error: getPickerBreakRequests API - " + e.message);
+    console.error("Error: getAdminBreakRequests API - " + e.message);
     next(e);
-    console.log(e);
   }
 };
 
-// جلب طلبات الاستراحة الخاصة بالبيكر
-data.getOnePickerBreakRequests = async (req, res, next) => {
+// جلب طلب استراحة واحد للبيكر
+data.getOnePickerBreakRequest = async (req, res, next) => {
   try {
     const auth_data = req.auth_data;
     const { breakRequestId } = req.params;
@@ -213,6 +270,7 @@ data.getOnePickerBreakRequests = async (req, res, next) => {
         "breakTypeId",
         "requestNote",
         "voiceNote",
+        "voiceText",
         "status",
         "managerNote",
         "createdAt",
@@ -228,22 +286,28 @@ data.getOnePickerBreakRequests = async (req, res, next) => {
           attributes: ["id", "first_name", "last_name"],
         },
       ],
-      order: [["createdAt", "DESC"]],
     });
+
+    if (!breakRequest) {
+      return res.status(404).json({
+        ack: 0,
+        msg: language[req.headers.lang || "en"].pickerType
+          .break_request_not_found,
+      });
+    }
 
     res.status(200).json({
       ack: 1,
-      breakRequests: breakRequest,
+      breakRequest: breakRequest,
     });
   } catch (e) {
-    logger.error("Error: getPickerBreakRequests API - " + e.message);
+    console.error("Error: getOnePickerBreakRequest API - " + e.message);
     next(e);
-    console.log(e);
   }
 };
 
 // إلغاء طلب استراحة (للبيكر)
-data.cancelBreakRequest = async (req, res) => {
+data.cancelBreakRequest = async (req, res, next) => {
   try {
     const auth_data = req.auth_data;
     const { breakRequestId } = req.params;
@@ -266,13 +330,14 @@ data.cancelBreakRequest = async (req, res) => {
     await BreakRequestsModel.update(
       {
         status: "cancelled",
+        updatedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
       },
       { where: { id: breakRequestId } }
     );
 
     const store = await StoresModel.findOne({
       where: { id: storeId },
-      attributes: ["userId", "id"], // userId هو صاحب الفرع
+      attributes: ["userId", "id"],
     });
 
     if (!store) {
@@ -294,8 +359,7 @@ data.cancelBreakRequest = async (req, res) => {
       msg: language[lang].pickerType.break_request_cancelled,
     });
   } catch (e) {
-    logger.error("Error: cancelBreakRequest API - " + e.message);
-    console.log(e);
+    console.error("Error: cancelBreakRequest API - " + e.message);
     next(e);
   }
 };
@@ -326,8 +390,9 @@ data.manageBreakRequest = async (req, res, next) => {
     await BreakRequestsModel.update(
       {
         status,
-        // managerId: auth_data.id,
+        managerId: auth_data.id,
         managerNote,
+        updatedAt: moment().format("YYYY-MM-DD HH:mm:ss"),
       },
       { where: { id: breakRequestId } }
     );
@@ -344,16 +409,16 @@ data.manageBreakRequest = async (req, res, next) => {
       msg: language[lang].pickerType.break_request_updated,
     });
   } catch (e) {
-    logger.error("Error: manageBreakRequest API - " + e.message);
-    console.log(e);
+    console.error("Error: manageBreakRequest API - " + e.message);
     next(e);
   }
 };
 
-data.uploadVoiceNote = async (req, res) => {
+// رفع الملف الصوتي
+data.uploadVoiceNote = async (req, res, next) => {
   try {
     const lang = req.headers.lang || "en";
-    console.log("one");
+
     // التحقق من وجود الملف في الطلب
     if (!req.file) {
       return res.status(400).json({
@@ -364,7 +429,7 @@ data.uploadVoiceNote = async (req, res) => {
       });
     }
 
-    // إنشاء المسار النسبي للملف (مطابق لنمط الأمثلة)
+    // إنشاء المسار النسبي للملف
     const voiceNotePath = req.file.path
       .replace(/\\/g, "/")
       .match(/\/voice_notes\/.+$/)[0];
@@ -378,7 +443,6 @@ data.uploadVoiceNote = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in uploadVoiceNote:", error);
-    console.log(error);
     next(error);
   }
 };

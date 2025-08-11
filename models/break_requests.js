@@ -18,7 +18,7 @@ module.exports = sequelize.define(
     },
     breakTypeId: {
       type: Sequelize.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     storeId: {
       type: Sequelize.INTEGER,
@@ -30,6 +30,10 @@ module.exports = sequelize.define(
     },
     voiceNote: {
       type: Sequelize.STRING(255),
+      allowNull: true,
+    },
+    voiceText: {
+      type: Sequelize.TEXT, // النص المحول من الصوت
       allowNull: true,
     },
     status: {
@@ -57,5 +61,6 @@ module.exports = sequelize.define(
   },
   {
     tableName: "break_requests",
+    timestamps: true,
   }
 );

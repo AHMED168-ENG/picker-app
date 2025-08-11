@@ -73,17 +73,46 @@ const getBreakRequestByIdSchema = (lang = "en") =>
 
 const requestBreakSchema = (lang = "en") =>
   Joi.object({
-    breakTypeId: Joi.number().integer().required().messages({
-      "number.base": language[lang].pickerType.id_invalid,
-      "any.required": language[lang].pickerType.break_type_required,
-    }),
+    breakTypeId: Joi.alternatives()
+      .try(
+        Joi.number().integer(), // رقم ID عادي
+        Joi.string().valid("other") // أو كلمة "other"
+      )
+      .required()
+      .messages({
+        "number.base": language[lang].pickerType.id_invalid,
+        "any.required": language[lang].pickerType.break_type_required,
+        "any.only": language[lang].pickerType.break_type_invalid,
+      }),
+
     requestNote: Joi.string().max(500).allow("").optional().messages({
       "string.base": language[lang].pickerType.note_invalid,
       "string.max": language[lang].pickerType.note_max,
     }),
-    voiceNote: Joi.string().max(255).allow("").required().messages({
+
+    // Voice note مطلوب لو breakTypeId = "other"
+    voiceNote: Joi.when("breakTypeId", {
+      is: "other",
+      then: Joi.string().max(255).required(), // مطلوب لو "other"
+      otherwise: Joi.forbidden(), // ممنوع لو رقم ID
+    }).messages({
       "string.base": language[lang].pickerType.voice_note_invalid,
       "string.max": language[lang].pickerType.voice_note_max,
+      "any.required": language[lang].pickerType.voice_note_required_for_other,
+      "any.unknown": language[lang].pickerType.voice_note_not_allowed_with_id,
+    }),
+
+    // Voice text مطلوب لو تم إرسال voiceNote
+    voiceText: Joi.when("voiceNote", {
+      is: Joi.exist(), // لو voiceNote موجود
+      then: Joi.string().min(1).max(1000).required(), // voiceText مطلوب
+      otherwise: Joi.forbidden(), // ممنوع لو مافيش voiceNote
+    }).messages({
+      "string.base": language[lang].pickerType.voice_text_invalid,
+      "string.min": language[lang].pickerType.voice_text_empty,
+      "string.max": language[lang].pickerType.voice_text_max,
+      "any.required": language[lang].pickerType.voice_text_required_with_voice,
+      "any.unknown": language[lang].pickerType.voice_text_not_allowed,
     }),
   });
 

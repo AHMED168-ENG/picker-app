@@ -41,6 +41,7 @@ const pickerLogin = async (req, res) => {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
     if (!isPasswordValid) {
       return res.status(401).json({
         ack: 0,
