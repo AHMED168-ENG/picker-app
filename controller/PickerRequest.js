@@ -17,9 +17,9 @@ const {
 } = require("../models/index");
 
 // Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPEN_AI,
-});
+// const openai = new OpenAI({
+//   apiKey: process.env.OPEN_AI,
+// });
 
 BreakRequestsModel.belongsTo(BreakTypesModel, {
   foreignKey: "breakTypeId",
