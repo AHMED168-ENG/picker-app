@@ -4,7 +4,7 @@ const moment = require("moment-timezone");
 moment.tz.setDefault("Asia/Qatar");
 const notificationService = require("../services/notification");
 const language = require("../language");
-const OpenAI = require("openai");
+// const OpenAI = require("openai");
 const fs = require("fs");
 const path = require("path");
 
